@@ -433,6 +433,27 @@ extension SwiftCommonTool{
         return base
     }
     
+    
+    /// present popView, Notice, besure to implement UIPopoverPresentationControllerDelegate in originalVC
+    /// - Parameter originalVC: <#originalVC description#>
+    /// - Parameter popedVC: <#popedVC description#>
+    /// - Parameter sender: <#sender description#>
+    static func popViewController(originalVC: UIViewController , popedVC:UIViewController, sender:UIView) {
+        
+        let vc = popedVC
+        vc.modalPresentationStyle = .popover
+        guard let popVC = vc.popoverPresentationController else {
+            return
+        }
+        
+        popVC.permittedArrowDirections = .up
+        popVC.sourceView = sender
+        let senderRect = sender.convert(sender.frame, from: sender.superview)
+        let sourceRect = CGRect(x: senderRect.origin.x, y: senderRect.origin.y + (sender.frame.size.height / 2), width: senderRect.size.width, height: senderRect.size.height)
+        popVC.sourceRect = sourceRect
+        popVC.delegate = originalVC as? UIPopoverPresentationControllerDelegate
+        originalVC.present(vc, animated: true, completion: nil)
+    }
 
 }
 
