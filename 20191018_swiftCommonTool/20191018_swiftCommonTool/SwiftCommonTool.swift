@@ -454,7 +454,18 @@ extension SwiftCommonTool{
         popVC.delegate = originalVC as? UIPopoverPresentationControllerDelegate
         originalVC.present(vc, animated: true, completion: nil)
     }
-
+    /*
+    // MARK: UIPopoverPresentationControllerDelegate
+    extension ViewController: UIPopoverPresentationControllerDelegate {
+        func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+            return .none
+        }
+        
+        func popoverPresentationControllerShouldDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) -> Bool {
+            return true
+        }
+    }
+    */
 }
 
 
