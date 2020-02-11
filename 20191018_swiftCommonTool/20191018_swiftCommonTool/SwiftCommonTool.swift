@@ -631,6 +631,57 @@ extension UIImage {
             ovalPath.stroke()
         }
     }
+    // assume asset size is 30*30
+    func addTextBelowImage(text: NSString, fontSize:CGFloat = 12) -> UIImage{
+        
+        // Setup the font specific variables
+        let textColor:UIColor = .black
+        let textFont:UIFont = .systemFont(ofSize: fontSize)
+        
+        //Setups up the font attributes that will be later used to dictate how the text should be drawn
+        let textFontAttributes = [
+            NSAttributedString.Key.font: textFont,
+            NSAttributedString.Key.foregroundColor: textColor,
+        ]
+        
+        // Create bitmap based graphics context
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: 50, height: 50  + fontSize + 2), false, 0.0)
+
+        
+        //Put the image into a rectangle as large as the original image.
+        self.draw(in: CGRect(x: 0, y: 0, width: 50, height: 50))
+        
+        let textSize = text.size(withAttributes: [NSAttributedString.Key.font:textFont])
+        let textRect = CGRect(x: 25 - textSize.width / 2.0, y: 50,
+                              width: textSize.width, height: textSize.height)
+        text.draw(in: textRect, withAttributes: textFontAttributes)
+        
+        // Get the image from the graphics context
+        let newImag = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return newImag ?? UIImage()
+
+    }
+    //UIImage(named: "icon_comment")?.withRenderingMode(.alwaysTemplate)
+    func filled(withColor color: UIColor) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
+        color.setFill()
+        guard let context = UIGraphicsGetCurrentContext() else { return self }
+
+        context.translateBy(x: 0, y: size.height)
+        context.scaleBy(x: 1.0, y: -1.0)
+        context.setBlendMode(CGBlendMode.normal)
+
+        let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+        guard let mask = cgImage else { return self }
+        context.clip(to: rect, mask: mask)
+        context.fill(rect)
+
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        return newImage
+    }
 }
 
 
