@@ -710,6 +710,138 @@ extension UIView{
     }
 }
 
+extension UIImageView {
+    // save to tmp once downloaded
+    func setUrlAndDownloadImage(imgURLString: String?) {
+        self.accessibilityIdentifier = imgURLString ?? "" // this vaule may be change for reused cell
+        let requestIdentifier = imgURLString ?? "" // this is to identify who do the task, if the accessibilityIdentifier has change, then cancel the task
+        self.clipsToBounds = true
+        self.contentMode = .scaleAspectFill
+        self.compareIdentifierAndSetImage(identifier: requestIdentifier, image: UIImage(named: "icon_fail") ?? UIImage())
+        self.compareIdentifierAndAddRemoveLoading(isAdd: true,identifier: requestIdentifier)
+        guard let imageURLString = imgURLString else {
+            return
+        }
+        
+        guard let url = URL(string: imageURLString) else{
+            return
+        }
+        //check if in tmp before do task
+        if self.checkInTmp(fileName: url.lastPathComponent).0{
+            guard let imgInTmp = self.readImageInTmp(name: url.lastPathComponent) else{
+                return
+            }
+            self.compareIdentifierAndSetImage(identifier: requestIdentifier, image: imgInTmp)
+            self.compareIdentifierAndAddRemoveLoading(isAdd: false,identifier: requestIdentifier)
+        }else{
+            // this delay prevent keeping sending task, would wait and to check if really needed to do task
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {[weak self] in
+                if self?.accessibilityIdentifier == requestIdentifier{
+                    let task = URLSession.shared.dataTask(with: url) {[weak self] (data, response, error) in
+                        if let data = data, let image = UIImage(data: data) {
+                            DispatchQueue.main.async {
+                                _ = self?.saveImageInTmp(image: UIImage(data: data)!, name: url.lastPathComponent)
+                                self?.compareIdentifierAndSetImage(identifier: requestIdentifier, image: image)
+                                self?.compareIdentifierAndAddRemoveLoading(isAdd: false,identifier: requestIdentifier)
+                            }
+                            
+                        }else{
+                            self?.compareIdentifierAndAddRemoveLoading(isAdd: false,identifier: requestIdentifier)
+                        }
+                    }
+                    task.resume()
+                }
+            }
+            
+        }
+            
+    }
+
+    private func compareIdentifierAndAddRemoveLoading(isAdd:Bool,identifier:String?){
+        DispatchQueue.main.async {[weak self] in
+            if self?.accessibilityIdentifier == identifier{
+                if isAdd{
+                    let activityView = UIActivityIndicatorView()
+                    activityView.startAnimating()
+                    activityView.frame.size.height = 30
+                    activityView.frame.size.width = 30
+                    activityView.center = self?.center ?? .zero
+                    self?.addSubview(activityView)
+                }else{
+                    for sub in self?.subviews ?? [] {
+                        if sub is UIActivityIndicatorView{
+                            sub.removeFromSuperview()
+                        }
+                    }
+                }
+            }else{
+                //id not match
+                //            print("id not match",self.accessibilityIdentifier,identifier)
+            }
+        }
+
+        
+    }
+
+    private func compareIdentifierAndSetImage(identifier:String?, image:UIImage){
+        if self.accessibilityIdentifier == identifier{
+            self.image = image
+        }else{
+            //id not match
+//            print("id not match",self.accessibilityIdentifier,identifier)
+        }
+    }
+    private func checkInTmp(fileName:String)->(Bool,String){
+        let tmpDirectoryStr = NSTemporaryDirectory()
+        let fileURL = URL(fileURLWithPath: tmpDirectoryStr).appendingPathComponent(fileName)
+//        print(NSHomeDirectory())
+        return (FileManager.default.fileExists(atPath: fileURL.path),fileURL.path)
+    }
+    
+    private func readImageInTmp(name:String)->UIImage?{
+        let tmpDirectoryStr = NSTemporaryDirectory()
+        let fileURL = URL(fileURLWithPath: tmpDirectoryStr).appendingPathComponent(name)
+        let image = UIImage(contentsOfFile: fileURL.path)
+        return image
+    }
+    
+    private func saveImageInTmp(image:UIImage, name:String)->Bool{
+        do {
+            let tmpDirectoryStr = NSTemporaryDirectory()
+            let fileURL = URL(fileURLWithPath: tmpDirectoryStr).appendingPathComponent(name)
+            if let imageData = image.jpegData(compressionQuality: 0.5) {
+                try imageData.write(to: fileURL)
+                return true
+            }
+        } catch {
+            print(error)
+        }
+        return false
+    }
+    
+    func cutImageTo1_1(oringinalImage:UIImage)->UIImage{
+        let maxSize = max(oringinalImage.size.width,oringinalImage.size.height)
+        let squareSize = CGSize.init(width: maxSize, height: maxSize)
+
+        let dx = (maxSize - oringinalImage.size.width) / 2.0
+        let dy = (maxSize - oringinalImage.size.height) / 2.0
+        UIGraphicsBeginImageContext(squareSize)
+        var rect = CGRect.init(x: 0, y: 0, width: maxSize, height: maxSize)
+
+        let context = UIGraphicsGetCurrentContext()
+        context?.setFillColor(UIColor.white.cgColor)
+        context?.fill(rect)
+
+        rect = rect.insetBy(dx: dx, dy: dy)
+        oringinalImage.draw(in: rect, blendMode: CGBlendMode.normal, alpha: 1.0)
+        let squareImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return squareImage ?? UIImage()
+    }
+}
+
+
+
 
 
 // extrac URL link in String
